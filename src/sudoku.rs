@@ -95,14 +95,21 @@ mod tests {
     #[case(
         ".................................................................................",
         "500000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        0, 5
+        0,
+        5
     )]
     #[case(
         "5................................................................................",
         "400000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        0, 4
+        0,
+        4
     )]
-    fn test_place(#[case] input: &str, #[case] expected: &str, #[case] idx: usize, #[case] digit: consts::BitWidth) {
+    fn test_place(
+        #[case] input: &str,
+        #[case] expected: &str,
+        #[case] idx: usize,
+        #[case] digit: consts::BitWidth,
+    ) {
         let mut sudoku = Sudoku::from_str(input).unwrap();
 
         let _ = sudoku.place(idx, digit);
