@@ -1,9 +1,9 @@
 use crate::{
     consts,
     error::SudokuError,
-    hidden::{place_all_hidden_singles, place_all_hidden_zeroes},
+    hidden::{check_all_hidden_zeroes, place_all_hidden_singles},
     sudoku::Sudoku,
-    visible::{place_all_visible_doubles, place_all_visible_singles},
+    visible::{check_all_visible_doubles, place_all_visible_singles},
 };
 
 #[inline]
@@ -73,7 +73,7 @@ pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
     if sudoku.is_solved() {
         return Ok(sudoku);
     }
-    place_all_visible_doubles(&mut sudoku)?;
+    check_all_visible_doubles(&mut sudoku)?;
     place_all_hidden_singles(&mut sudoku)?;
     place_all_visible_singles(&mut sudoku)?;
     if sudoku.is_solved() {
@@ -92,8 +92,8 @@ fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
 
 #[inline]
 fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
-    place_all_hidden_zeroes(sudoku)?;
+    check_all_hidden_zeroes(sudoku)?;
     place_all_hidden_singles(sudoku)?;
     place_all_visible_singles(sudoku)?;
-    place_all_visible_doubles(sudoku)
+    check_all_visible_doubles(sudoku)
 }
