@@ -1,29 +1,37 @@
-use crate::Sudoku;
 use crate::consts;
-use crate::sudoku::SudokuError;
+use crate::error::SudokuError;
+use crate::solver::place_and_propagate;
+use crate::Sudoku;
 
-fn place_hidden_single(sudoku: &mut Sudoku, idx: usize, neighbors: &[usize; 8]) -> Result<(), SudokuError> {
-    let mask = neighbors.iter()
+fn place_hidden_single(
+    sudoku: &mut Sudoku,
+    idx: usize,
+    neighbors: &[usize; 8],
+) -> Result<(), SudokuError> {
+    let mask = neighbors
+        .iter()
         .map(|&i| sudoku.bitboard[i])
         .reduce(|a, b| a | b)
         .ok_or(SudokuError::IndexError)?;
 
-    let bitboard = sudoku.bitboard.get(idx)
-        .ok_or(SudokuError::IndexError)?;
+    let bitboard = sudoku.bitboard.get(idx).ok_or(SudokuError::IndexError)?;
     let value = (mask ^ consts::MASK) & bitboard;
-    
+
     if value.count_ones() == 1 {
         let digit = value.trailing_zeros() as consts::BitWidth;
-        sudoku.place_and_propagate(idx, digit)?;
+        place_and_propagate(sudoku, idx, digit)?;
     }
     Ok(())
 }
 
-fn place_hidden_singles(sudoku: &mut Sudoku, neighbor_arr: &[[usize; 8]; consts::SIZE]) -> Result<(), SudokuError> {
-    for (idx, neighbors) in neighbor_arr.iter().enumerate() {
-        place_hidden_single(sudoku, idx, neighbors)?;
-    }
-    Ok(())
+fn place_hidden_singles(
+    sudoku: &mut Sudoku,
+    neighbor_arr: &[[usize; 8]; consts::SIZE],
+) -> Result<(), SudokuError> {
+    neighbor_arr
+        .iter()
+        .enumerate()
+        .try_for_each(|(idx, neighbors)| place_hidden_single(sudoku, idx, neighbors))
 }
 
 fn place_hidden_singles_rows(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
@@ -46,12 +54,15 @@ pub(crate) fn place_all_hidden_singles(sudoku: &mut Sudoku) -> Result<(), Sudoku
 
 #[inline]
 fn get_mask(sudoku: &Sudoku, neighbors: &[usize; consts::WIDTH]) -> consts::BitWidth {
-    neighbors.iter()
+    neighbors
+        .iter()
         .map(|&i| (sudoku.bitboard[i], sudoku.digits[i]))
         .map(|(bitboard, digit)| bitboard | (1 << digit))
-        .reduce(|a, b| a | b).unwrap_or(0)
+        .reduce(|a, b| a | b)
+        .unwrap_or(0)
 }
 
+#[inline]
 fn validate_mask(sudoku: &Sudoku, neighbors: &[usize; consts::WIDTH]) -> Result<(), SudokuError> {
     if get_mask(sudoku, neighbors) < consts::MASK {
         Err(SudokuError::from(sudoku))
@@ -60,8 +71,12 @@ fn validate_mask(sudoku: &Sudoku, neighbors: &[usize; consts::WIDTH]) -> Result<
     }
 }
 
-fn validate_hidden_zeroes(sudoku: &Sudoku, neighbor_arr: &[[usize; consts::WIDTH]; consts::WIDTH]) -> Result<(), SudokuError> {
-    neighbor_arr.iter()
+fn validate_hidden_zeroes(
+    sudoku: &Sudoku,
+    neighbor_arr: &[[usize; consts::WIDTH]; consts::WIDTH],
+) -> Result<(), SudokuError> {
+    neighbor_arr
+        .iter()
         .try_for_each(|neighbors| validate_mask(sudoku, neighbors))
 }
 
