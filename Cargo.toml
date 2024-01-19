@@ -5,6 +5,9 @@ codegen-units = 1
 panic = "abort"
 lto = "thin"
 
+[profile.dev]
+opt-level = 1
+
 [package]
 name = "rust-sudoku-solver"
 version = "0.1.0"
@@ -15,4 +18,6 @@ edition = "2021"
 [dependencies]
 itertools = "0.11.0"
 md5 = "0.7.0"
+no-panic = "0.1.28"
 rayon = "1.7.0"
+rstest = "0.18.2"

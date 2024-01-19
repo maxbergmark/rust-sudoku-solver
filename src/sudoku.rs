@@ -1,9 +1,9 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
-use crate::consts;
+use crate::{consts, hidden::{place_all_hidden_zeroes, place_all_hidden_singles}, visible::{place_all_visible_doubles, place_all_visible_singles}};
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Sudoku {
     pub bitboard: [consts::BitWidth; consts::SIZE],
     pub digits: [consts::BitWidth; consts::SIZE],
@@ -13,35 +13,46 @@ pub struct Sudoku {
 }
 
 #[derive(Debug)]
-pub struct SudokuError {
-    pub digit: u16,
-    pub index: usize,
-    pub num_recursions: i32,
-    pub guesses: i32,
+pub enum SudokuError {
+    ParseError,
+    IndexError,
+    NoSolution {
+        num_recursions: i32,
+        guesses: i32,
+    }
+}
+
+impl From<&Sudoku> for SudokuError {
+    fn from(sudoku: &Sudoku) -> Self {
+        SudokuError::NoSolution {
+            num_recursions: sudoku.num_recursions,
+            guesses: sudoku.guesses, 
+        }
+    }
+}
+
+impl From<&mut Sudoku> for SudokuError {
+    fn from(sudoku: &mut Sudoku) -> Self {
+        SudokuError::NoSolution {
+            num_recursions: sudoku.num_recursions,
+            guesses: sudoku.guesses, 
+        }
+    }
 }
 
 impl fmt::Display for Sudoku {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s: String = self.digits.iter()
-            .map(|d| char::from_digit(*d as u32, 10).unwrap())
+            .map(|&d| char::from_digit(d as u32, 10).unwrap_or('?'))
             .collect();
         write!(f, "{s}")
     }
 }
 
-impl fmt::Display for SudokuError {
+impl FromStr for Sudoku {
+    type Err = SudokuError;
 
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // placeholder error message
-        write!(f, "incorrect_sudoku")
-    }
-}
-
-
-impl Sudoku {
-
-    pub fn new(input: &str) -> Self {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut sudoku = Sudoku { 
             bitboard: [consts::MASK; consts::SIZE],
             digits: [0; consts::SIZE], 
@@ -49,22 +60,34 @@ impl Sudoku {
             num_recursions: 0,
             guesses: 0,            
         };
-        for (i, c) in input.chars().enumerate() {
-            if let '1'..='9' = c {
-                let digit = c.to_digit(10).unwrap() as consts::BitWidth;
+        for (i, c) in s.chars().enumerate() {
+            let digit = if c == '.' {
+                0
+            } else {
+                c.to_digit(10).ok_or(SudokuError::ParseError)? as consts::BitWidth
+            };
+
+            if digit != 0 {
                 sudoku.place(i, digit);
             }
         }
-        sudoku
+        Ok(sudoku)
     }
+}
+
+impl Sudoku {
 
     #[inline]
     fn is_solved(&self) -> bool {
-        self.num_digits == i32::try_from(consts::SIZE).unwrap()
+        self.num_digits == consts::SIZE as i32
     }
 
+    #[inline]
     pub(crate) fn place(&mut self, i: usize, n: consts::BitWidth) {
-        self.digits[i] = n;
+        if let Some(digit) = self.digits.get_mut(i) {
+            *digit = n
+        }
+
         self.num_digits += 1;
         let mask = consts::MASK ^ (1 << n);
         for neighbor in consts::NEIGHBORS[i] {
@@ -74,128 +97,96 @@ impl Sudoku {
     }
 
     #[inline]
-    fn unit_propagate(mut self, i: usize) -> Result<Self, SudokuError> {
+    fn unit_propagate(&mut self, i: usize) -> Result<(), SudokuError> {
         for neighbor in consts::NEIGHBORS[i] {
+            let digit = self.digits[neighbor];
             let bitboard = self.bitboard[neighbor];
-            if (self.digits[neighbor] == 0) & (bitboard == 0) {
-                return Err(SudokuError { 
-                    digit: 0,
-                    index: i,
-                    num_recursions: self.num_recursions, 
-                    guesses: self.guesses 
-                })
-            } else if (self.digits[neighbor] == 0) & (bitboard.count_ones() == 1) {
+            if digit == 0 && bitboard == 0 {
+                return Err(SudokuError::from(self));
+            } else if digit == 0 && bitboard.count_ones() == 1 {
                 let digit = self.bitboard[neighbor].trailing_zeros() as consts::BitWidth;
-                self = self.place_and_copy(neighbor, digit)?;        
+                self.place_and_propagate(neighbor, digit)?;
             }
         }
-        Ok(self)
+        Ok(())
     }
 
-    pub(crate) fn place_and_copy(mut self, i: usize, n: consts::BitWidth) -> Result<Self, SudokuError> {
-        self.digits[i] = n;
-        self.num_digits += 1;
-        let mask = consts::MASK ^ (1 << n);
-        self.bitboard[i] = 0;
-
-        for neighbor in consts::NEIGHBORS[i] {
-            self.bitboard[neighbor] &= mask;
-        }
-
+    pub(crate) fn place_and_propagate(&mut self, i: usize, n: consts::BitWidth) -> Result<(), SudokuError> {
+        self.place(i, n);
         self.unit_propagate(i)
     }
 
-    fn get_next_idx(&self) -> Option<usize> {
-        let mut min_idx = None;
-        let mut min_options = 9;
-        for idx in 0..consts::SIZE {
-            if self.digits[idx] != 0 {
-                continue;
-            }
-            let options = self.bitboard[idx].count_ones();
-            if options < min_options {
-                min_options = options;
-                min_idx = Some(idx);
-                if options == 1 {
-                    return min_idx;
-                }
-            }
+    #[inline]
+    fn store_stats(&mut self, error: SudokuError) -> SudokuError {
+        if let SudokuError::NoSolution { num_recursions, guesses } = error {
+            self.num_recursions = num_recursions;
+            self.guesses = guesses;
         }
-        min_idx
+        error
     }
 
-    fn check_constraints(&mut self) -> Result<(), SudokuError> {
-        self.check_all_hidden_zeroes()?;
-        self.check_all_hidden_singles()?;
-        self.check_all_visible_singles()?;
-        self.check_all_visible_doubles()
-
+    #[inline]
+    fn check_branch(&mut self, idx: usize, n: u16) -> Result<Sudoku, SudokuError> {
+        let mut cloned_board = self.clone();
+        cloned_board.place_and_propagate(idx, n)?;
+        cloned_board.solve_recursive()
+            .map_err(|error| self.store_stats(error))
     }
 
-    fn solve_recursive(mut self) -> Result<Self, SudokuError> {
+    fn branch_possibilities(&mut self, idx: usize) -> Result<Sudoku, SudokuError> {
+        let bitboard = self.bitboard[idx];
+        self.guesses += (bitboard.count_ones() > 1) as i32;
+        let start = bitboard.trailing_zeros() as u16;
+        let end = 16 - bitboard.leading_zeros() as u16;
+
+        (start..end)
+            .filter(|&n| bitboard & (1<<n) > 0)
+            .map(|n| self.check_branch(idx, n))
+            .find_map(Result::ok)
+            .ok_or(SudokuError::from(self))
+    }
+
+    fn solve_recursive(&mut self) -> Result<Sudoku, SudokuError> {
         self.num_recursions += 1;
-        self.check_constraints()?;
+        check_constraints_new(self)?;
         if self.is_solved() {
-            return Ok(self);
+            Ok(self.clone())
+        } else if let Some(idx) = get_next_idx(self) {
+            self.branch_possibilities(idx)
+        } else {
+            Err(SudokuError::from(self))
         }
-
-        if let Some(idx) = self.get_next_idx() {
-            let bitboard = self.bitboard[idx];
-            self.guesses += (bitboard.count_ones() > 1) as i32;
-            let start = bitboard.trailing_zeros() as u16;
-            let end = 16 - bitboard.leading_zeros() as u16;
-            // let start = 0;
-            // let end = 10;
-            for n in start..end {
-                if self.bitboard[idx] & (1<<n) == 0 {
-                    continue;
-                }
-                let attempt_placement = self.place_and_copy(idx, n);
-                if let Ok(new_board) = attempt_placement {
-                    match new_board.solve_recursive() {
-                        Ok(solution) => return Ok(solution),
-                        Err(err) => {
-                            self.num_recursions = err.num_recursions;
-                            self.guesses = err.guesses;
-                        },
-                    }    
-                }
-            }
-        }
-
-        Err(SudokuError { 
-            digit: 0,
-            index: 0,
-            num_recursions: self.num_recursions, 
-            guesses: self.guesses 
-        })
     }
+}
 
-    pub fn solve(mut self) -> Result<Self, SudokuError> {
-        // self.check_all_visible_singles()?;
-        // if self.is_solved() {
-            // return Ok(self);
-        // }
-        self.check_all_hidden_singles()?;
-        if self.is_solved() {
-            return Ok(self);
-        }
-        self.check_all_visible_doubles()?;
-        // self.check_all_visible_n(2)?;
-        // if self.num_digits < 50 {
-            // self.check_all_visible_n(3)?;
-            // self.check_all_visible_n(4)?;
-            // self.check_all_visible_n(5)?;
-            // self.check_all_visible_n(6)?;
-            // self.check_all_visible_n(7)?;
-            // self.check_all_visible_n(8)?;
-        // }
-        self.check_all_hidden_singles()?;
-        // self.check_all_visible_singles()?;
-        if self.is_solved() {
-            return Ok(self);
-        }
-        self.solve_recursive()
+pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
+    place_all_hidden_singles(&mut sudoku)?;
+    place_all_visible_singles(&mut sudoku)?;
+    if sudoku.is_solved() {
+        return Ok(sudoku);
     }
+    place_all_visible_doubles(&mut sudoku)?;
+    place_all_hidden_singles(&mut sudoku)?;
+    place_all_visible_singles(&mut sudoku)?;
+    if sudoku.is_solved() {
+        return Ok(sudoku);
+    }
+    sudoku.solve_recursive()
+}
 
+fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
+    (0..consts::SIZE)
+        .filter(|&i| sudoku.digits[i] == 0)
+        .map(|i| (i, sudoku.bitboard[i].count_ones()))
+        .min_by_key(|&(_, num_possibilities)| num_possibilities)
+        .map(|(idx, _)| idx)
+}
+
+
+#[inline]
+fn check_constraints_new(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+    place_all_hidden_zeroes(sudoku)?;
+    place_all_hidden_singles(sudoku)?;
+    place_all_visible_singles(sudoku)?;
+    place_all_visible_doubles(sudoku)
 }
