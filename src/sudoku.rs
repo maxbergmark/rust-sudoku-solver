@@ -112,7 +112,7 @@ mod tests {
     ) {
         let mut sudoku = Sudoku::from_str(input).unwrap();
 
-        let _ = sudoku.place(idx, digit);
+        sudoku.place(idx, digit);
         assert_eq!(sudoku.to_string(), expected);
     }
 }

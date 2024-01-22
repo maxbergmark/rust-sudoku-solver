@@ -152,7 +152,7 @@ mod tests {
     )]
     fn test_visible_doubles(#[case] input: &str, #[case] expected: &str) {
         let mut sudoku = Sudoku::from_str(input).unwrap();
-        let _ = check_all_visible_doubles(&mut sudoku).unwrap();
+        check_all_visible_doubles(&mut sudoku).unwrap();
         assert_eq!(sudoku.to_string(), expected);
     }
 }

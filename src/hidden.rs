@@ -128,9 +128,9 @@ mod tests {
         Ok(())
     )]
     fn test_hidden_zeroes(#[case] input: &str, #[case] expected: Result<(), ()>) {
-        let mut sudoku = Sudoku::from_str(input).unwrap();
+        let sudoku = Sudoku::from_str(input).unwrap();
 
-        let result = check_all_hidden_zeroes(&mut sudoku);
+        let result = check_all_hidden_zeroes(&sudoku);
         match expected {
             Ok(()) => assert!(result.is_ok()),
             Err(()) => assert!(result.is_err()),
@@ -153,7 +153,7 @@ mod tests {
     )]
     fn test_hidden_singles(#[case] input: &str, #[case] expected: &str) {
         let mut sudoku = Sudoku::from_str(input).unwrap();
-        let _ = place_all_hidden_singles(&mut sudoku).unwrap();
+        place_all_hidden_singles(&mut sudoku).unwrap();
         assert_eq!(sudoku.to_string(), expected);
     }
 }
