@@ -20,7 +20,7 @@ impl fmt::Display for Sudoku {
                 u32::try_from(digit)
                     .ok()
                     .and_then(|digit| char::from_digit(digit, 10))
-                    .unwrap_or('?')
+                    .unwrap_or('.')
             })
             .collect();
         write!(f, "{s}")
@@ -31,21 +31,11 @@ impl FromStr for Sudoku {
     type Err = SudokuError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut sudoku = Sudoku {
-            bitboard: [consts::MASK; consts::SIZE],
-            digits: [0; consts::SIZE],
-            num_digits: 0,
-            num_recursions: 0,
-            guesses: 0,
-        };
-        for (i, c) in s.chars().enumerate() {
-            let digit = if c == '.' {
-                0
-            } else {
-                c.to_digit(10).ok_or(SudokuError::ParseError)? as consts::BitWidth
-            };
+        let mut sudoku = Sudoku::new();
 
-            if digit != 0 {
+        for (i, c) in s.chars().enumerate() {
+            if c != '.' && c != '0' {
+                let digit = c.to_digit(10).ok_or(SudokuError::ParseError)? as consts::BitWidth;
                 sudoku.place(i, digit);
             }
         }
@@ -54,6 +44,16 @@ impl FromStr for Sudoku {
 }
 
 impl Sudoku {
+    fn new() -> Self {
+        Sudoku {
+            bitboard: [consts::MASK; consts::SIZE],
+            digits: [0; consts::SIZE],
+            num_digits: 0,
+            num_recursions: 0,
+            guesses: 0,
+        }
+    }
+
     #[inline]
     pub(crate) fn is_solved(&self) -> bool {
         self.num_digits == consts::SIZE
@@ -96,23 +96,41 @@ mod tests {
         ".................................................................................",
         "500000000000000000000000000000000000000000000000000000000000000000000000000000000",
         0,
-        5
+        5,
+        false
+    )]
+    #[case(
+        "5................................................................................",
+        "540000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        1,
+        4,
+        false
     )]
     #[case(
         "5................................................................................",
         "400000000000000000000000000000000000000000000000000000000000000000000000000000000",
         0,
-        4
+        4,
+        false
+    )]
+    #[case(
+        "97856231413649782552431876974965318238572194661284957389723645146198523725317469.",
+        "978562314136497825524318769749653182385721946612849573897236451461985237253174698",
+        80,
+        8,
+        true
     )]
     fn test_place(
         #[case] input: &str,
         #[case] expected: &str,
         #[case] idx: usize,
         #[case] digit: consts::BitWidth,
+        #[case] is_solved: bool,
     ) {
         let mut sudoku = Sudoku::from_str(input).unwrap();
 
         sudoku.place(idx, digit);
         assert_eq!(sudoku.to_string(), expected);
+        assert_eq!(sudoku.is_solved(), is_solved);
     }
 }

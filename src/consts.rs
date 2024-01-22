@@ -4,8 +4,6 @@ pub(crate) const SIZE: usize = 81;
 pub(crate) const WIDTH: usize = 9;
 pub(crate) const MASK: BitWidth = 0b11_1111_1110;
 
-// pub(crate) const DIGIT_PLACEMENTS: [BitWidth; 10] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
-
 pub(crate) const NEIGHBORS: [[usize; 20]; SIZE] = [
     [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19, 20, 27, 36, 45, 54, 63, 72,

@@ -135,7 +135,6 @@ mod tests {
             Ok(()) => assert!(result.is_ok()),
             Err(()) => assert!(result.is_err()),
         }
-        // assert_eq!(sudoku.to_string(), expected);
     }
 
     #[rstest]

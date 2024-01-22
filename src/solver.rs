@@ -6,15 +6,41 @@ use crate::{
     visible::{check_all_visible_doubles, place_all_visible_singles},
 };
 
-#[inline]
-fn check_branch(
+pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
+    // heuristic for attempting to solve the puzzle
+    place_all_hidden_singles(&mut sudoku)?;
+    place_all_visible_singles(&mut sudoku)?;
+    if sudoku.is_solved() {
+        return Ok(sudoku);
+    }
+    check_all_visible_doubles(&mut sudoku)?;
+    place_all_hidden_singles(&mut sudoku)?;
+    place_all_visible_singles(&mut sudoku)?;
+    if sudoku.is_solved() {
+        return Ok(sudoku);
+    }
+    solve_recursive(&mut sudoku)
+}
+
+fn solve_recursive(sudoku: &mut Sudoku) -> Result<Sudoku, SudokuError> {
+    sudoku.num_recursions += 1;
+    check_constraints(sudoku)?;
+    if sudoku.is_solved() {
+        Ok(sudoku.clone())
+    } else if let Some(idx) = get_next_idx(sudoku) {
+        branch_possibilities(sudoku, idx)
+    } else {
+        Err(SudokuError::from(sudoku))
+    }
+}
+
+pub(crate) fn place_and_propagate(
     sudoku: &mut Sudoku,
     idx: usize,
     digit: consts::BitWidth,
-) -> Result<Sudoku, SudokuError> {
-    let mut cloned_board = sudoku.clone();
-    place_and_propagate(&mut cloned_board, idx, digit)?;
-    solve_recursive(&mut cloned_board).map_err(|error| sudoku.store_stats(error))
+) -> Result<(), SudokuError> {
+    sudoku.place(idx, digit);
+    unit_propagate(sudoku, idx)
 }
 
 fn branch_possibilities(sudoku: &mut Sudoku, idx: usize) -> Result<Sudoku, SudokuError> {
@@ -30,16 +56,15 @@ fn branch_possibilities(sudoku: &mut Sudoku, idx: usize) -> Result<Sudoku, Sudok
         .ok_or(SudokuError::from(sudoku))
 }
 
-fn solve_recursive(sudoku: &mut Sudoku) -> Result<Sudoku, SudokuError> {
-    sudoku.num_recursions += 1;
-    check_constraints(sudoku)?;
-    if sudoku.is_solved() {
-        Ok(sudoku.clone())
-    } else if let Some(idx) = get_next_idx(sudoku) {
-        branch_possibilities(sudoku, idx)
-    } else {
-        Err(SudokuError::from(sudoku))
-    }
+#[inline]
+fn check_branch(
+    sudoku: &mut Sudoku,
+    idx: usize,
+    digit: consts::BitWidth,
+) -> Result<Sudoku, SudokuError> {
+    let mut cloned_board = sudoku.clone();
+    place_and_propagate(&mut cloned_board, idx, digit)?;
+    solve_recursive(&mut cloned_board).map_err(|error| sudoku.store_stats(error))
 }
 
 #[inline]
@@ -57,31 +82,6 @@ fn unit_propagate(sudoku: &mut Sudoku, idx: usize) -> Result<(), SudokuError> {
     Ok(())
 }
 
-pub(crate) fn place_and_propagate(
-    sudoku: &mut Sudoku,
-    idx: usize,
-    digit: consts::BitWidth,
-) -> Result<(), SudokuError> {
-    sudoku.place(idx, digit);
-    unit_propagate(sudoku, idx)
-}
-
-pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
-    // heuristic for attempting to solve the puzzle
-    place_all_hidden_singles(&mut sudoku)?;
-    place_all_visible_singles(&mut sudoku)?;
-    if sudoku.is_solved() {
-        return Ok(sudoku);
-    }
-    check_all_visible_doubles(&mut sudoku)?;
-    place_all_hidden_singles(&mut sudoku)?;
-    place_all_visible_singles(&mut sudoku)?;
-    if sudoku.is_solved() {
-        return Ok(sudoku);
-    }
-    solve_recursive(&mut sudoku)
-}
-
 fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
     (0..consts::SIZE)
         .filter(|&i| sudoku.digits[i] == 0)
@@ -96,4 +96,31 @@ fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
     place_all_hidden_singles(sudoku)?;
     place_all_visible_singles(sudoku)?;
     check_all_visible_doubles(sudoku)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::*;
+    use crate::solver;
+    use crate::sudoku::Sudoku;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(
+        "000000010400000000020000000000050407008000300001090000300400200050100000000806000",
+        "693784512487512936125963874932651487568247391741398625319475268856129743274836159"
+    )]
+    #[case(
+        "000000032040000000900000000302700050000100800600000000070000100080060000000030006",
+        "861475932247398615935612748392786451754123869618954327576249183183567294429831576"
+    )]
+    #[case(
+        "........8..3...4...9..2..6.....79.......612...6.5.2.7...8...5...1.....2.4.5.....3",
+        "621943758783615492594728361142879635357461289869532174238197546916354827475286913"
+    )]
+    fn test_sudokus(#[case] input: &str, #[case] expected: &str) {
+        let sudoku = Sudoku::from_str(input).unwrap();
+        let solution = solver::solve(sudoku).unwrap();
+        assert_eq!(solution.to_string(), expected);
+    }
 }

@@ -51,12 +51,11 @@ fn benchmark_file(filename: &str) {
 }
 
 fn is_valid(s: &Sudoku, solution: &Sudoku) -> bool {
-    for (&d1, d2) in s.digits.iter().zip(solution.digits) {
-        if d1 != 0 && d1 != d2 {
-            return false;
-        }
-    }
-    true
+    s.digits
+        .iter()
+        .zip(solution.digits)
+        .filter(|(&sudoku_digit, _)| sudoku_digit != 0)
+        .all(|(&sudoku_digit, solution_digit)| sudoku_digit == solution_digit)
 }
 
 #[allow(unused)]
@@ -64,13 +63,17 @@ fn output_solutions(filename: &str) -> Result<String, SudokuError> {
     let sudokus = read_lines(filename)?;
     let mut ret = String::new();
     writeln!(ret, "{}", sudokus.len());
-    sudokus.into_iter().enumerate().for_each(|(i, s)| {
-        let solution = solver::solve(s.clone()).unwrap_or(s.clone());
-        assert!(is_valid(&s, &solution));
-        writeln!(ret, "{s},{solution}");
-    });
-    // print!("{ret}");
+    sudokus
+        .into_iter()
+        .try_for_each(|sudoku| write_row(&mut ret, sudoku))
+        .map_err(|_| SudokuError::ParseError)?;
     Ok(ret)
+}
+
+fn write_row(ret: &mut String, sudoku: Sudoku) -> std::fmt::Result {
+    let solution = solver::solve(sudoku.clone()).unwrap_or(sudoku.clone());
+    assert!(is_valid(&sudoku, &solution));
+    writeln!(ret, "{sudoku},{solution}")
 }
 
 #[allow(unused)]
@@ -91,7 +94,7 @@ fn benchmark() {
     benchmark_file("data-sets/puzzles6_forum_hardest_1106.txt");
     benchmark_file("data-sets/ph1307.txt");
     // benchmark_file("data-sets/ph1910_01.txt");
-    // solve_all_in_file("data-sets/ph1910_02.txt");
+    // benchmark_file("data-sets/ph1910_02.txt");
 }
 
 fn parse_and_expect(filename: &str, expected_digest: &str) {
@@ -134,29 +137,4 @@ fn main() {
     // output_solutions("data-sets/hardest.txt");
     // output_solutions("data-sets/test.txt");
     // output_solutions("data-sets/hard_sudokus.txt");
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rstest::rstest;
-
-    #[rstest]
-    #[case(
-        "000000010400000000020000000000050407008000300001090000300400200050100000000806000",
-        "693784512487512936125963874932651487568247391741398625319475268856129743274836159"
-    )]
-    #[case(
-        "000000032040000000900000000302700050000100800600000000070000100080060000000030006",
-        "861475932247398615935612748392786451754123869618954327576249183183567294429831576"
-    )]
-    #[case(
-        "........8..3...4...9..2..6.....79.......612...6.5.2.7...8...5...1.....2.4.5.....3",
-        "621943758783615492594728361142879635357461289869532174238197546916354827475286913"
-    )]
-    fn test_sudokus(#[case] input: &str, #[case] expected: &str) {
-        let sudoku = Sudoku::from_str(input).unwrap();
-        let solution = solver::solve(sudoku).unwrap();
-        assert_eq!(solution.to_string(), expected);
-    }
 }
