@@ -20,6 +20,7 @@ impl fmt::Display for Sudoku {
                 u32::try_from(digit)
                     .ok()
                     .and_then(|digit| char::from_digit(digit, 10))
+                    // .map(|c| if c == '0' { '.' } else { c })
                     .unwrap_or('.')
             })
             .collect();
@@ -31,7 +32,7 @@ impl FromStr for Sudoku {
     type Err = SudokuError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut sudoku = Sudoku::new();
+        let mut sudoku = Sudoku::default();
 
         for (i, c) in s.chars().enumerate() {
             if c != '.' && c != '0' {
@@ -43,8 +44,8 @@ impl FromStr for Sudoku {
     }
 }
 
-impl Sudoku {
-    fn new() -> Self {
+impl Default for Sudoku {
+    fn default() -> Self {
         Sudoku {
             bitboard: [consts::MASK; consts::SIZE],
             digits: [0; consts::SIZE],
@@ -53,8 +54,10 @@ impl Sudoku {
             guesses: 0,
         }
     }
+}
 
-    #[inline]
+impl Sudoku {
+    #[inline(always)]
     pub(crate) fn is_solved(&self) -> bool {
         self.num_digits == consts::SIZE
     }
@@ -126,11 +129,12 @@ mod tests {
         #[case] idx: usize,
         #[case] digit: consts::BitWidth,
         #[case] is_solved: bool,
-    ) {
-        let mut sudoku = Sudoku::from_str(input).unwrap();
+    ) -> Result<(), SudokuError> {
+        let mut sudoku = Sudoku::from_str(input)?;
 
         sudoku.place(idx, digit);
         assert_eq!(sudoku.to_string(), expected);
         assert_eq!(sudoku.is_solved(), is_solved);
+        Ok(())
     }
 }

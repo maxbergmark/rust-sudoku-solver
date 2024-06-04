@@ -36,26 +36,29 @@ fn place_hidden_single(
     idx: usize,
     neighbors: &[usize; 8],
 ) -> Result<(), SudokuError> {
-    let mask = get_hidden_singles_mask(sudoku, neighbors)?;
-    let bitboard = sudoku.bitboard.get(idx).ok_or(SudokuError::IndexError)?;
+    let mask = get_hidden_singles_mask(sudoku, neighbors);
+    let bitboard = sudoku.bitboard[idx];
     let value = (mask ^ consts::MASK) & bitboard;
 
     if value.count_ones() == 1 {
         let digit = value.trailing_zeros() as consts::BitWidth;
-        place_and_propagate(sudoku, idx, digit)?;
+        place_and_propagate(sudoku, idx, digit)
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
+#[inline(always)]
 fn get_hidden_singles_mask(
     sudoku: &Sudoku,
     neighbors: &[usize; 8],
-) -> Result<consts::BitWidth, SudokuError> {
+) -> consts::BitWidth {
     neighbors
         .iter()
         .map(|&i| sudoku.bitboard[i])
         .reduce(|a, b| a | b)
-        .ok_or(SudokuError::IndexError)
+        .unwrap_or(0)
+        // .ok_or(SudokuError::IndexError)
 }
 
 pub(crate) fn check_all_hidden_zeroes(sudoku: &Sudoku) -> Result<(), SudokuError> {
@@ -127,14 +130,18 @@ mod tests {
         "64931528713248769558729641387312956495176432826453817939685274141867395272594183.",
         Ok(())
     )]
-    fn test_hidden_zeroes(#[case] input: &str, #[case] expected: Result<(), ()>) {
-        let sudoku = Sudoku::from_str(input).unwrap();
+    fn test_hidden_zeroes(
+        #[case] input: &str,
+        #[case] expected: Result<(), ()>,
+    ) -> Result<(), SudokuError> {
+        let sudoku = Sudoku::from_str(input)?;
 
         let result = check_all_hidden_zeroes(&sudoku);
         match expected {
             Ok(()) => assert!(result.is_ok()),
             Err(()) => assert!(result.is_err()),
         }
+        Ok(())
     }
 
     #[rstest]
@@ -150,9 +157,10 @@ mod tests {
         "123...789.....................5........6...................5.....................",
         "123456789000000000000000000000500000000600000000000000000005000000000000000000000"
     )]
-    fn test_hidden_singles(#[case] input: &str, #[case] expected: &str) {
-        let mut sudoku = Sudoku::from_str(input).unwrap();
-        place_all_hidden_singles(&mut sudoku).unwrap();
+    fn test_hidden_singles(#[case] input: &str, #[case] expected: &str) -> Result<(), SudokuError> {
+        let mut sudoku = Sudoku::from_str(input)?;
+        place_all_hidden_singles(&mut sudoku)?;
         assert_eq!(sudoku.to_string(), expected);
+        Ok(())
     }
 }

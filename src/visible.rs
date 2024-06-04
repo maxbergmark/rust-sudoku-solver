@@ -123,10 +123,11 @@ mod tests {
     #[case("36579824198123457674215638943681592721947386557862941319734265885496713262358179.")]
     #[case("96781354241375296852864973135219768467943812584152639778436125919628547323597481.")]
     #[case("13847965272531689469482573154163892728395741697624138586759214345916327831278456.")]
-    fn test_visible_singles(#[case] input: &str) {
-        let mut sudoku = Sudoku::from_str(input).unwrap();
+    fn test_visible_singles(#[case] input: &str) -> Result<(), SudokuError> {
+        let mut sudoku = Sudoku::from_str(input)?;
         let _ = place_all_visible_singles(&mut sudoku);
         assert!(sudoku.is_solved());
+        Ok(())
     }
 
     #[rstest]
@@ -150,9 +151,13 @@ mod tests {
         "1.34.67.9...................5..............5............................234..7891",
         "103456709000000000000000000050000000000000050000000000000000000000000000234567891"
     )]
-    fn test_visible_doubles(#[case] input: &str, #[case] expected: &str) {
-        let mut sudoku = Sudoku::from_str(input).unwrap();
-        check_all_visible_doubles(&mut sudoku).unwrap();
+    fn test_visible_doubles(
+        #[case] input: &str,
+        #[case] expected: &str,
+    ) -> Result<(), SudokuError> {
+        let mut sudoku = Sudoku::from_str(input)?;
+        check_all_visible_doubles(&mut sudoku)?;
         assert_eq!(sudoku.to_string(), expected);
+        Ok(())
     }
 }

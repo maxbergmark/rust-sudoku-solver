@@ -3,6 +3,7 @@ use crate::sudoku::Sudoku;
 #[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
 pub enum SudokuError {
+    SolveError,
     ParseError,
     IndexError,
     NoSolution { num_recursions: i32, guesses: i32 },

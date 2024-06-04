@@ -1,18 +1,18 @@
 use crate::{
-    consts,
-    error::SudokuError,
-    hidden::{check_all_hidden_zeroes, place_all_hidden_singles},
-    sudoku::Sudoku,
-    visible::{check_all_visible_doubles, place_all_visible_singles},
+    consts, error::SudokuError, hidden::{check_all_hidden_zeroes, place_all_hidden_singles}, sudoku::Sudoku, triples::check_triples, visible::{check_all_visible_doubles, place_all_visible_singles}
 };
 
 pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
     // heuristic for attempting to solve the puzzle
-    place_all_hidden_singles(&mut sudoku)?;
     place_all_visible_singles(&mut sudoku)?;
     if sudoku.is_solved() {
         return Ok(sudoku);
     }
+    place_all_hidden_singles(&mut sudoku)?;
+    if sudoku.is_solved() {
+        return Ok(sudoku);
+    }
+    check_triples(&mut sudoku)?;
     check_all_visible_doubles(&mut sudoku)?;
     place_all_hidden_singles(&mut sudoku)?;
     place_all_visible_singles(&mut sudoku)?;
@@ -92,9 +92,10 @@ fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
 
 #[inline]
 fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+    check_triples(sudoku)?;
+    place_all_visible_singles(sudoku)?;
     check_all_hidden_zeroes(sudoku)?;
     place_all_hidden_singles(sudoku)?;
-    place_all_visible_singles(sudoku)?;
     check_all_visible_doubles(sudoku)
 }
 
@@ -118,9 +119,35 @@ mod tests {
         "........8..3...4...9..2..6.....79.......612...6.5.2.7...8...5...1.....2.4.5.....3",
         "621943758783615492594728361142879635357461289869532174238197546916354827475286913"
     )]
+    #[case(
+        ".................................................................................",
+        "123456789456789123789123456231674895875912364694538217317265948542897631968341572"
+    )]
     fn test_sudokus(#[case] input: &str, #[case] expected: &str) {
         let sudoku = Sudoku::from_str(input).unwrap();
         let solution = solver::solve(sudoku).unwrap();
         assert_eq!(solution.to_string(), expected);
     }
+
+    #[rstest]
+    #[case(
+        "057000300000801000001000000600030090020070000800000000400600000000000207000000050",
+        "957264381346851972281793645614532798529478136873916524435627819198345267762189453",
+        3
+    )]
+    #[case(
+        "000000036030000050200000000000060800700000400000053000000700210060900000001000000",
+        "148572936637894152295631748314267895756189423829453671583746219462915387971328564",
+        318
+    )]
+    fn test_manual(#[case] input: &str, #[case] expected: &str, #[case] expected_recursions: i32) -> Result<(), SudokuError> {
+        let sudoku = Sudoku::from_str(input)?;
+        let solution = solver::solve(sudoku)?;
+        assert_eq!(&solution.to_string(), expected);
+        assert_eq!(expected_recursions, solution.num_recursions);
+
+        Ok(())
+    }
 }
+
+
