@@ -1,5 +1,10 @@
 use crate::{
-    consts, error::SudokuError, hidden::{check_all_hidden_zeroes, place_all_hidden_singles}, sudoku::Sudoku, triples::check_triples, visible::{check_all_visible_doubles, place_all_visible_singles}
+    consts,
+    error::SudokuError,
+    hidden::{check_all_hidden_zeroes, place_all_hidden_singles},
+    sudoku::Sudoku,
+    triples::check_triples,
+    visible::{check_all_visible_doubles, place_all_visible_singles},
 };
 
 pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
@@ -140,7 +145,11 @@ mod tests {
         "148572936637894152295631748314267895756189423829453671583746219462915387971328564",
         318
     )]
-    fn test_manual(#[case] input: &str, #[case] expected: &str, #[case] expected_recursions: i32) -> Result<(), SudokuError> {
+    fn test_manual(
+        #[case] input: &str,
+        #[case] expected: &str,
+        #[case] expected_recursions: i32,
+    ) -> Result<(), SudokuError> {
         let sudoku = Sudoku::from_str(input)?;
         let solution = solver::solve(sudoku)?;
         assert_eq!(&solution.to_string(), expected);
@@ -149,5 +158,3 @@ mod tests {
         Ok(())
     }
 }
-
-

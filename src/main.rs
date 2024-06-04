@@ -6,8 +6,8 @@ pub mod error;
 pub mod hidden;
 pub mod solver;
 pub mod sudoku;
-pub mod visible;
 pub mod triples;
+pub mod visible;
 
 use error::SudokuError;
 #[allow(unused)]
@@ -37,7 +37,9 @@ fn solve_all_in_file(filename: &str) -> Result<(Vec<Sudoku>, Vec<Sudoku>), Sudok
 
 #[allow(unused)]
 fn print_hardest_sudoku(sudokus: &[Sudoku], solutions: &[Sudoku]) -> Result<(), SudokuError> {
-    let (hardest_sudoku, _) = sudokus.iter().zip(solutions.iter())
+    let (hardest_sudoku, _) = sudokus
+        .iter()
+        .zip(solutions.iter())
         .max_by_key(|(_, solution)| solution.num_recursions)
         .ok_or(SudokuError::SolveError)?;
 
@@ -146,7 +148,10 @@ impl SolutionData {
 
 fn print_file_info(solution_data: SolutionData) {
     println!("filename: {}", solution_data.filename);
-    println!("expected recursions: {:7}", solution_data.expected_recursions);
+    println!(
+        "expected recursions: {:7}",
+        solution_data.expected_recursions
+    );
     println!("actual recursions:   {:7}", solution_data.recursions);
     println!("expected guesses:    {:7}", solution_data.expected_guesses);
     println!("actual guesses:      {:7}", solution_data.guesses);
@@ -157,8 +162,14 @@ fn check_solution_data(solution_data: SolutionData) {
         print_file_info(solution_data);
         panic!();
     } else {
-        println!("recursions: {:7} <= {:7}", solution_data.recursions, solution_data.expected_recursions);
-        println!("guesses:    {:7} <= {:7}", solution_data.guesses, solution_data.expected_guesses);
+        println!(
+            "recursions: {:7} <= {:7}",
+            solution_data.recursions, solution_data.expected_recursions
+        );
+        println!(
+            "guesses:    {:7} <= {:7}",
+            solution_data.guesses, solution_data.expected_guesses
+        );
     }
 }
 
@@ -166,7 +177,7 @@ fn count_recursions(filename: &str, expected_recursions: i32, expected_guesses: 
     let (_, solutions) = solve_all_in_file(filename).unwrap_or_default();
     let recursions = solutions.iter().map(|s| s.num_recursions).sum::<i32>();
     let guesses = solutions.iter().map(|s| s.guesses).sum::<i32>();
-    
+
     let solution_data = SolutionData {
         filename: filename.to_string(),
         expected_recursions,
@@ -195,7 +206,6 @@ fn validate_recursions() {
     count_recursions("data-sets/hard_sudokus.txt", 15_240, 8730);
     count_recursions("data-sets/puzzles6_forum_hardest_1106.txt", 83_611, 53_226);
 }
-
 
 fn main() {
     benchmark();

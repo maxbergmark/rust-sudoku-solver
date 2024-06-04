@@ -49,16 +49,13 @@ fn place_hidden_single(
 }
 
 #[inline(always)]
-fn get_hidden_singles_mask(
-    sudoku: &Sudoku,
-    neighbors: &[usize; 8],
-) -> consts::BitWidth {
+fn get_hidden_singles_mask(sudoku: &Sudoku, neighbors: &[usize; 8]) -> consts::BitWidth {
     neighbors
         .iter()
         .map(|&i| sudoku.bitboard[i])
         .reduce(|a, b| a | b)
         .unwrap_or(0)
-        // .ok_or(SudokuError::IndexError)
+    // .ok_or(SudokuError::IndexError)
 }
 
 pub(crate) fn check_all_hidden_zeroes(sudoku: &Sudoku) -> Result<(), SudokuError> {
