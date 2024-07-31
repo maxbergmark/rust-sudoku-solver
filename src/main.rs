@@ -1,19 +1,9 @@
 #![warn(clippy::all)]
 
-pub mod consts;
-pub mod debug;
-pub mod error;
-pub mod hidden;
-pub mod solver;
-pub mod sudoku;
-pub mod triples;
-pub mod visible;
-
-use error::SudokuError;
 #[allow(unused)]
 use rayon::prelude::*;
+use rust_sudoku_solver::{solver, Sudoku, SudokuError};
 use std::{fmt::Write, fs::read_to_string, str::FromStr, time::Instant};
-use sudoku::Sudoku;
 
 fn read_lines(filename: &str) -> Result<Vec<Sudoku>, SudokuError> {
     read_to_string(filename)

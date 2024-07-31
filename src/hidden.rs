@@ -109,6 +109,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use rstest::rstest;
+    use std::str::FromStr;
 
     #[rstest]
     #[case(

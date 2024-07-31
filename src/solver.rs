@@ -106,10 +106,11 @@ fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::*;
+    use crate::error::SudokuError;
     use crate::solver;
     use crate::sudoku::Sudoku;
     use rstest::rstest;
+    use std::str::FromStr;
 
     #[rstest]
     #[case(

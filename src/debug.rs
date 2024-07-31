@@ -73,7 +73,9 @@ pub fn pretty_print_alternatives(sudoku: &Sudoku) -> Option<String> {
 mod tests {
     use super::super::*;
     use super::*;
+    use error::SudokuError;
     use rstest::rstest;
+    use std::str::FromStr;
 
     #[rstest]
     #[case(

@@ -1,6 +1,6 @@
 use crate::{consts, error::SudokuError, solver::place_and_propagate, sudoku::Sudoku};
 
-pub(crate) fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+pub fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
     get_placements(sudoku)
         .into_iter()
         .try_for_each(|(idx, digit)| {
@@ -12,7 +12,7 @@ pub(crate) fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), Sudok
         })
 }
 
-pub(crate) fn check_all_visible_doubles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+pub fn check_all_visible_doubles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
     check_visible_doubles_rows(sudoku)?;
     check_visible_doubles_cols(sudoku)?;
     check_visible_doubles_cells(sudoku)
@@ -104,9 +104,9 @@ fn check_visible_double_possible(sudoku: &Sudoku, n_idx: usize) -> Result<(), Su
 
 #[cfg(test)]
 mod tests {
-    use super::super::*;
     use super::*;
     use rstest::rstest;
+    use std::str::FromStr;
 
     #[rstest]
     #[case("69387541214563279878219435635742186981695723442936817527451968396874352153128694.")]
