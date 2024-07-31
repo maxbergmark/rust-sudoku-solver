@@ -3,7 +3,7 @@ use crate::error::SudokuError;
 use crate::solver::place_and_propagate;
 use crate::Sudoku;
 
-pub(crate) fn place_all_hidden_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+pub fn place_all_hidden_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
     place_hidden_singles_rows(sudoku)?;
     place_hidden_singles_cols(sudoku)?;
     place_hidden_singles_cells(sudoku)

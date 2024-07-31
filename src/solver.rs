@@ -96,7 +96,7 @@ fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
 }
 
 #[inline]
-fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+pub fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
     check_triples(sudoku)?;
     place_all_visible_singles(sudoku)?;
     check_all_hidden_zeroes(sudoku)?;
