@@ -58,12 +58,12 @@ impl Default for Sudoku {
 
 impl Sudoku {
     #[inline(always)]
-    pub(crate) fn is_solved(&self) -> bool {
+    pub fn is_solved(&self) -> bool {
         self.num_digits == consts::SIZE
     }
 
     #[inline]
-    pub(crate) fn place(&mut self, idx: usize, digit: consts::BitWidth) {
+    pub fn place(&mut self, idx: usize, digit: consts::BitWidth) {
         self.digits[idx] = digit;
         self.bitboard[idx] = 0;
         self.num_digits += 1;
