@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use crate::{consts, error::SudokuError};
+use crate::{consts, error::Error};
 
 #[derive(Debug, Clone)]
 pub struct Sudoku {
@@ -19,8 +19,7 @@ impl fmt::Display for Sudoku {
             .map(|&digit| {
                 u32::try_from(digit)
                     .ok()
-                    .and_then(|digit| char::from_digit(digit, 10))
-                    // .map(|c| if c == '0' { '.' } else { c })
+                    .and_then(|d| char::from_digit(d, 10))
                     .unwrap_or('.')
             })
             .collect();
@@ -29,14 +28,14 @@ impl fmt::Display for Sudoku {
 }
 
 impl FromStr for Sudoku {
-    type Err = SudokuError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut sudoku = Sudoku::default();
+        let mut sudoku = Self::default();
 
         for (i, c) in s.chars().enumerate() {
             if c != '.' && c != '0' {
-                let digit = c.to_digit(10).ok_or(SudokuError::ParseError)? as consts::BitWidth;
+                let digit = c.to_digit(10).ok_or(Error::ParseError)? as consts::BitWidth;
                 sudoku.place(i, digit);
             }
         }
@@ -46,7 +45,7 @@ impl FromStr for Sudoku {
 
 impl Default for Sudoku {
     fn default() -> Self {
-        Sudoku {
+        Self {
             bitboard: [consts::MASK; consts::SIZE],
             digits: [0; consts::SIZE],
             num_digits: 0,
@@ -57,8 +56,9 @@ impl Default for Sudoku {
 }
 
 impl Sudoku {
-    #[inline(always)]
-    pub(crate) fn is_solved(&self) -> bool {
+    #[inline]
+    #[must_use]
+    pub const fn is_solved(&self) -> bool {
         self.num_digits == consts::SIZE
     }
 
@@ -75,8 +75,8 @@ impl Sudoku {
     }
 
     #[inline]
-    pub(crate) fn store_stats(&mut self, error: SudokuError) -> SudokuError {
-        if let SudokuError::NoSolution {
+    pub(crate) fn store_stats(&mut self, error: Error) -> Error {
+        if let Error::NoSolution {
             num_recursions,
             guesses,
         } = error
@@ -89,6 +89,7 @@ impl Sudoku {
 }
 
 #[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
 mod tests {
     use super::super::*;
     use super::*;
@@ -129,7 +130,7 @@ mod tests {
         #[case] idx: usize,
         #[case] digit: consts::BitWidth,
         #[case] is_solved: bool,
-    ) -> Result<(), SudokuError> {
+    ) -> Result<()> {
         let mut sudoku = Sudoku::from_str(input)?;
 
         sudoku.place(idx, digit);

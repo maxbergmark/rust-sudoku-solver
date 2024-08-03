@@ -1,6 +1,11 @@
-use crate::{consts, error::SudokuError, solver::place_and_propagate, sudoku::Sudoku};
+use crate::{consts, error::Error, solver::place_and_propagate, sudoku::Sudoku};
 
-pub fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+/// Place all visible singles in the Sudoku.
+///
+/// # Errors
+///
+/// Returns an error if the Sudoku is invalid.
+pub fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), Error> {
     get_placements(sudoku)
         .into_iter()
         .try_for_each(|(idx, digit)| {
@@ -12,7 +17,12 @@ pub fn place_all_visible_singles(sudoku: &mut Sudoku) -> Result<(), SudokuError>
         })
 }
 
-pub fn check_all_visible_doubles(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+/// Place all visible doubles in the Sudoku.
+///
+/// # Errors
+///
+/// Returns an error if the Sudoku is invalid.
+pub fn check_all_visible_doubles(sudoku: &mut Sudoku) -> Result<(), Error> {
     check_visible_doubles_rows(sudoku)?;
     check_visible_doubles_cols(sudoku)?;
     check_visible_doubles_cells(sudoku)
@@ -28,22 +38,22 @@ fn get_placements(sudoku: &Sudoku) -> Vec<(usize, consts::BitWidth)> {
         .collect()
 }
 
-fn check_visible_doubles_rows(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+fn check_visible_doubles_rows(sudoku: &mut Sudoku) -> Result<(), Error> {
     check_visible_doubles(sudoku, &consts::SAME_ROW)
 }
 
-fn check_visible_doubles_cols(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+fn check_visible_doubles_cols(sudoku: &mut Sudoku) -> Result<(), Error> {
     check_visible_doubles(sudoku, &consts::SAME_COL)
 }
 
-fn check_visible_doubles_cells(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+fn check_visible_doubles_cells(sudoku: &mut Sudoku) -> Result<(), Error> {
     check_visible_doubles(sudoku, &consts::SAME_CELL)
 }
 
 fn check_visible_doubles(
     sudoku: &mut Sudoku,
     neighbor_arr: &[[usize; 8]; consts::SIZE],
-) -> Result<(), SudokuError> {
+) -> Result<(), Error> {
     for (idx, neighbors) in neighbor_arr.iter().enumerate() {
         if sudoku.bitboard[idx].count_ones() == 2 {
             check_visible_double_pairs(sudoku, idx, neighbors)?;
@@ -56,7 +66,7 @@ fn check_visible_double_pairs(
     sudoku: &mut Sudoku,
     idx: usize,
     neighbors: &[usize; 8],
-) -> Result<(), SudokuError> {
+) -> Result<(), Error> {
     for neighbor in neighbors {
         if sudoku.bitboard[idx] == sudoku.bitboard[*neighbor] {
             check_visible_double_pair(sudoku, idx, *neighbor, neighbors)?;
@@ -70,7 +80,7 @@ fn check_visible_double_pair(
     idx: usize,
     neighbor: usize,
     neighbors: &[usize; 8],
-) -> Result<(), SudokuError> {
+) -> Result<(), Error> {
     let mask = consts::MASK ^ sudoku.bitboard[idx];
     neighbors
         .iter()
@@ -82,7 +92,7 @@ fn check_visible_double(
     sudoku: &mut Sudoku,
     n_idx: usize,
     mask: consts::BitWidth,
-) -> Result<(), SudokuError> {
+) -> Result<(), Error> {
     sudoku.bitboard[n_idx] &= mask;
     check_visible_double_possible(sudoku, n_idx)?;
     if sudoku.bitboard[n_idx].count_ones() == 1 {
@@ -94,15 +104,16 @@ fn check_visible_double(
     }
 }
 
-fn check_visible_double_possible(sudoku: &Sudoku, n_idx: usize) -> Result<(), SudokuError> {
+fn check_visible_double_possible(sudoku: &Sudoku, n_idx: usize) -> Result<(), Error> {
     if (sudoku.digits[n_idx] == 0) && (sudoku.bitboard[n_idx] == 0) {
-        Err(SudokuError::from(sudoku))
+        Err(Error::from(sudoku))
     } else {
         Ok(())
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
 mod tests {
     use super::*;
     use rstest::rstest;
@@ -123,7 +134,7 @@ mod tests {
     #[case("36579824198123457674215638943681592721947386557862941319734265885496713262358179.")]
     #[case("96781354241375296852864973135219768467943812584152639778436125919628547323597481.")]
     #[case("13847965272531689469482573154163892728395741697624138586759214345916327831278456.")]
-    fn test_visible_singles(#[case] input: &str) -> Result<(), SudokuError> {
+    fn test_visible_singles(#[case] input: &str) -> Result<(), Error> {
         let mut sudoku = Sudoku::from_str(input)?;
         let _ = place_all_visible_singles(&mut sudoku);
         assert!(sudoku.is_solved());
@@ -151,10 +162,7 @@ mod tests {
         "1.34.67.9...................5..............5............................234..7891",
         "103456709000000000000000000050000000000000050000000000000000000000000000234567891"
     )]
-    fn test_visible_doubles(
-        #[case] input: &str,
-        #[case] expected: &str,
-    ) -> Result<(), SudokuError> {
+    fn test_visible_doubles(#[case] input: &str, #[case] expected: &str) -> Result<(), Error> {
         let mut sudoku = Sudoku::from_str(input)?;
         check_all_visible_doubles(&mut sudoku)?;
         assert_eq!(sudoku.to_string(), expected);

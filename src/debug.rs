@@ -35,10 +35,12 @@ pub fn pretty_print_alternatives(sudoku: &Sudoku) -> Option<String> {
         for j in 0..consts::WIDTH {
             let digit = sudoku.digits[consts::WIDTH * i + j];
             if sudoku.digits[consts::WIDTH * i + j] == 0 {
-                for d in 1..=9 {
-                    if sudoku.bitboard[9 * i + j] & (1 << d) > 0 {
-                        let c = u32::try_from(d).ok().and_then(|d| char::from_digit(d, 10));
-                        board[3 * i + (d - 1) / 3][3 * j + (d - 1) % 3] = c?;
+                for choice in 1..=9 {
+                    if sudoku.bitboard[9 * i + j] & (1 << choice) > 0 {
+                        let c = u32::try_from(choice)
+                            .ok()
+                            .and_then(|d| char::from_digit(d, 10));
+                        board[3 * i + (choice - 1) / 3][3 * j + (choice - 1) % 3] = c?;
                     }
                 }
             } else {
@@ -70,10 +72,11 @@ pub fn pretty_print_alternatives(sudoku: &Sudoku) -> Option<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
 mod tests {
     use super::super::*;
     use super::*;
-    use error::SudokuError;
+    use error::Error;
     use rstest::rstest;
     use std::str::FromStr;
 
@@ -90,9 +93,9 @@ mod tests {
         "1................................................................................",
         "+---+---+---+\n|1  |   |   |\n|   |   |   |\n|   |   |   |\n+---+---+---+\n|   |   |   |\n|   |   |   |\n|   |   |   |\n+---+---+---+\n|   |   |   |\n|   |   |   |\n|   |   |   |\n+---+---+---+",
     )]
-    fn test_pretty_print(#[case] input: &str, #[case] expected: &str) -> Result<(), SudokuError> {
+    fn test_pretty_print(#[case] input: &str, #[case] expected: &str) -> Result<()> {
         let sudoku = Sudoku::from_str(input)?;
-        let output = pretty_print(&sudoku).ok_or(SudokuError::ParseError)?;
+        let output = pretty_print(&sudoku).ok_or(Error::ParseError)?;
 
         assert_eq!(expected, output);
         Ok(())
@@ -111,12 +114,9 @@ mod tests {
         "1................................................................................",
         "+---+---+---+---+---+---+---+---+---+\n|...| 23| 23| 23| 23| 23| 23| 23| 23|\n|.1.|456|456|456|456|456|456|456|456|\n|...|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23| 23| 23|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23| 23| 23|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+\n| 23|123|123|123|123|123|123|123|123|\n|456|456|456|456|456|456|456|456|456|\n|789|789|789|789|789|789|789|789|789|\n+---+---+---+---+---+---+---+---+---+",
     )]
-    fn test_pretty_print_alternatives(
-        #[case] input: &str,
-        #[case] expected: &str,
-    ) -> Result<(), SudokuError> {
+    fn test_pretty_print_alternatives(#[case] input: &str, #[case] expected: &str) -> Result<()> {
         let sudoku = Sudoku::from_str(input)?;
-        let output = pretty_print_alternatives(&sudoku).ok_or(SudokuError::ParseError)?;
+        let output = pretty_print_alternatives(&sudoku).ok_or(Error::ParseError)?;
 
         assert_eq!(expected, output);
         Ok(())

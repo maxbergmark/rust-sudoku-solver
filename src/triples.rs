@@ -1,16 +1,23 @@
-use crate::{consts, error::SudokuError, solver::place_and_propagate, sudoku::Sudoku};
+use crate::{consts, solver::place_and_propagate, sudoku::Sudoku, Error, Result};
 
-#[allow(unused)]
-pub(crate) fn check_triples(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
+/// Check all triples in the Sudoku.
+///
+/// # Errors
+///
+/// Returns an error if the Sudoku is invalid.
+#[allow(clippy::module_name_repetitions)]
+pub fn check_triples(sudoku: &mut Sudoku) -> Result<()> {
     check_triples_rows_or_cols(sudoku, &get_row, &consts::ROWS)?;
     check_triples_rows_or_cols(sudoku, &get_col, &consts::COLS)
 }
 
-fn get_row(idx: usize) -> usize {
+#[inline]
+const fn get_row(idx: usize) -> usize {
     idx / consts::WIDTH
 }
 
-fn get_col(idx: usize) -> usize {
+#[inline]
+const fn get_col(idx: usize) -> usize {
     idx % consts::WIDTH
 }
 
@@ -18,7 +25,7 @@ fn check_triples_rows_or_cols(
     sudoku: &mut Sudoku,
     get_row_or_col: &dyn Fn(usize) -> usize,
     cols_or_rows: &[[usize; 9]; 9],
-) -> Result<(), SudokuError> {
+) -> Result<()> {
     for (cell_idx, cell) in consts::CELLS.iter().enumerate() {
         let mut cache = [0; 3];
         let base_row_idx = get_row_or_col(cell[0]);
@@ -40,7 +47,7 @@ fn check_digit(
     base_row_idx: usize,
     cell_idx: usize,
     cols_or_rows: &[[usize; 9]; 9],
-) -> Result<(), SudokuError> {
+) -> Result<()> {
     let bitmask = 1 << digit;
     let matching_rows: Vec<usize> = cache
         .iter()
@@ -69,7 +76,7 @@ fn check_triple_digits(
     row_idx: usize,
     cell_idx: usize,
     cols_or_rows: &[[usize; 9]; 9],
-) -> Result<(), SudokuError> {
+) -> Result<()> {
     let row_idx = row_idx + base_row_idx;
     let bitmask = 1 << digit;
     for idx in cols_or_rows[row_idx] {
@@ -81,9 +88,9 @@ fn check_triple_digits(
     Ok(())
 }
 
-fn place_triple_digit(sudoku: &mut Sudoku, idx: usize) -> Result<(), SudokuError> {
+fn place_triple_digit(sudoku: &mut Sudoku, idx: usize) -> Result<()> {
     if sudoku.digits[idx] == 0 && sudoku.bitboard[idx] == 0 {
-        Err(SudokuError::from(sudoku))
+        Err(Error::from(sudoku))
     } else if sudoku.bitboard[idx].count_ones() == 1 {
         let digit = sudoku.bitboard[idx].trailing_zeros() as consts::BitWidth;
         place_and_propagate(sudoku, idx, digit)
@@ -93,6 +100,7 @@ fn place_triple_digit(sudoku: &mut Sudoku, idx: usize) -> Result<(), SudokuError
 }
 
 #[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
 mod tests {
     use super::super::*;
     use super::*;
@@ -104,9 +112,8 @@ mod tests {
         ".........12345...745619..........................................................",
         "000000000123458007456197000000000000000000000000000000000000000000000000000000000"
     )]
-    fn test_place(#[case] input: &str, #[case] expected: &str) -> Result<(), SudokuError> {
+    fn test_place(#[case] input: &str, #[case] expected: &str) -> Result<()> {
         let mut sudoku = Sudoku::from_str(input)?;
-        println!("{}", debug::pretty_print_alternatives(&sudoku).unwrap());
 
         check_triples(&mut sudoku)?;
         hidden::place_all_hidden_singles(&mut sudoku)?;
@@ -116,23 +123,25 @@ mod tests {
     }
 
     #[test]
-    fn test_manual() {
+    fn test_manual() -> Result<()> {
         let input =
             "057000300300801000081703000600030090020070000800000000400607000000000207700000050";
-        let mut sudoku = Sudoku::from_str(input).unwrap();
-        check_triples(&mut sudoku).unwrap();
+        let mut sudoku = Sudoku::from_str(input)?;
+        check_triples(&mut sudoku)?;
         assert_eq!(sudoku.bitboard[58] & (1 << 5), 0);
-        hidden::place_all_hidden_singles(&mut sudoku).unwrap();
+        hidden::place_all_hidden_singles(&mut sudoku)?;
         assert_eq!(5, sudoku.digits[56]);
+        Ok(())
     }
 
     #[test]
-    fn test_manual_2() {
+    fn test_manual_2() -> Result<()> {
         let input =
             "000000036030000052200000000000067820700000400000053000000706210060900000001000000";
-        let mut sudoku = Sudoku::from_str(input).unwrap();
+        let mut sudoku = Sudoku::from_str(input)?;
         assert_eq!((1 << 6) | (1 << 9), sudoku.bitboard[43]);
-        check_triples(&mut sudoku).unwrap();
+        check_triples(&mut sudoku)?;
         assert_eq!(0, sudoku.bitboard[43]);
+        Ok(())
     }
 }

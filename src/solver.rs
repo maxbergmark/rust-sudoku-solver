@@ -1,13 +1,19 @@
 use crate::{
     consts,
-    error::SudokuError,
     hidden::{check_all_hidden_zeroes, place_all_hidden_singles},
     sudoku::Sudoku,
     triples::check_triples,
     visible::{check_all_visible_doubles, place_all_visible_singles},
+    Error, Result,
 };
 
-pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
+/// Solves a Sudoku puzzle. Returns the solved Sudoku if successful.
+/// If multiple solutions are possible, only one is returned.
+///
+/// # Errors
+///
+/// Returns an error if the Sudoku is invalid.
+pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku> {
     // heuristic for attempting to solve the puzzle
     place_all_visible_singles(&mut sudoku)?;
     if sudoku.is_solved() {
@@ -27,7 +33,21 @@ pub fn solve(mut sudoku: Sudoku) -> Result<Sudoku, SudokuError> {
     solve_recursive(&mut sudoku)
 }
 
-fn solve_recursive(sudoku: &mut Sudoku) -> Result<Sudoku, SudokuError> {
+/// Perform all constraint checks on the Sudoku.
+///
+/// # Errors
+///
+/// Returns an error if the Sudoku is invalid.
+#[inline]
+pub fn check_constraints(sudoku: &mut Sudoku) -> Result<()> {
+    check_triples(sudoku)?;
+    place_all_visible_singles(sudoku)?;
+    check_all_hidden_zeroes(sudoku)?;
+    place_all_hidden_singles(sudoku)?;
+    check_all_visible_doubles(sudoku)
+}
+
+fn solve_recursive(sudoku: &mut Sudoku) -> Result<Sudoku> {
     sudoku.num_recursions += 1;
     check_constraints(sudoku)?;
     if sudoku.is_solved() {
@@ -35,7 +55,7 @@ fn solve_recursive(sudoku: &mut Sudoku) -> Result<Sudoku, SudokuError> {
     } else if let Some(idx) = get_next_idx(sudoku) {
         branch_possibilities(sudoku, idx)
     } else {
-        Err(SudokuError::from(sudoku))
+        Err(Error::from(sudoku))
     }
 }
 
@@ -43,12 +63,12 @@ pub(crate) fn place_and_propagate(
     sudoku: &mut Sudoku,
     idx: usize,
     digit: consts::BitWidth,
-) -> Result<(), SudokuError> {
+) -> Result<()> {
     sudoku.place(idx, digit);
     unit_propagate(sudoku, idx)
 }
 
-fn branch_possibilities(sudoku: &mut Sudoku, idx: usize) -> Result<Sudoku, SudokuError> {
+fn branch_possibilities(sudoku: &mut Sudoku, idx: usize) -> Result<Sudoku> {
     let bitboard = sudoku.bitboard[idx];
     sudoku.guesses += i32::from(bitboard.count_ones() > 1);
     let start = bitboard.trailing_zeros() as consts::BitWidth;
@@ -58,28 +78,24 @@ fn branch_possibilities(sudoku: &mut Sudoku, idx: usize) -> Result<Sudoku, Sudok
         .filter(|&n| bitboard & (1 << n) > 0)
         .map(|digit| check_branch(sudoku, idx, digit))
         .find_map(Result::ok)
-        .ok_or(SudokuError::from(sudoku))
+        .ok_or_else(|| Error::from(sudoku))
 }
 
 #[inline]
-fn check_branch(
-    sudoku: &mut Sudoku,
-    idx: usize,
-    digit: consts::BitWidth,
-) -> Result<Sudoku, SudokuError> {
+fn check_branch(sudoku: &mut Sudoku, idx: usize, digit: consts::BitWidth) -> Result<Sudoku> {
     let mut cloned_board = sudoku.clone();
     place_and_propagate(&mut cloned_board, idx, digit)?;
     solve_recursive(&mut cloned_board).map_err(|error| sudoku.store_stats(error))
 }
 
 #[inline]
-fn unit_propagate(sudoku: &mut Sudoku, idx: usize) -> Result<(), SudokuError> {
+fn unit_propagate(sudoku: &mut Sudoku, idx: usize) -> Result<()> {
     for neighbor in consts::NEIGHBORS[idx] {
-        let digit = sudoku.digits[neighbor];
+        let current_digit = sudoku.digits[neighbor];
         let bitboard = sudoku.bitboard[neighbor];
-        if digit == 0 && bitboard == 0 {
-            return Err(SudokuError::from(sudoku));
-        } else if digit == 0 && bitboard.count_ones() == 1 {
+        if current_digit == 0 && bitboard == 0 {
+            return Err(Error::from(sudoku));
+        } else if current_digit == 0 && bitboard.count_ones() == 1 {
             let digit = sudoku.bitboard[neighbor].trailing_zeros() as consts::BitWidth;
             place_and_propagate(sudoku, neighbor, digit)?;
         }
@@ -95,20 +111,12 @@ fn get_next_idx(sudoku: &Sudoku) -> Option<usize> {
         .map(|(idx, _)| idx)
 }
 
-#[inline]
-pub fn check_constraints(sudoku: &mut Sudoku) -> Result<(), SudokuError> {
-    check_triples(sudoku)?;
-    place_all_visible_singles(sudoku)?;
-    check_all_hidden_zeroes(sudoku)?;
-    place_all_hidden_singles(sudoku)?;
-    check_all_visible_doubles(sudoku)
-}
-
 #[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
 mod tests {
-    use crate::error::SudokuError;
     use crate::solver;
     use crate::sudoku::Sudoku;
+    use crate::Result;
     use rstest::rstest;
     use std::str::FromStr;
 
@@ -129,10 +137,11 @@ mod tests {
         ".................................................................................",
         "123456789456789123789123456231674895875912364694538217317265948542897631968341572"
     )]
-    fn test_sudokus(#[case] input: &str, #[case] expected: &str) {
-        let sudoku = Sudoku::from_str(input).unwrap();
-        let solution = solver::solve(sudoku).unwrap();
+    fn test_sudokus(#[case] input: &str, #[case] expected: &str) -> Result<()> {
+        let sudoku = Sudoku::from_str(input)?;
+        let solution = solver::solve(sudoku)?;
         assert_eq!(solution.to_string(), expected);
+        Ok(())
     }
 
     #[rstest]
@@ -150,7 +159,7 @@ mod tests {
         #[case] input: &str,
         #[case] expected: &str,
         #[case] expected_recursions: i32,
-    ) -> Result<(), SudokuError> {
+    ) -> Result<()> {
         let sudoku = Sudoku::from_str(input)?;
         let solution = solver::solve(sudoku)?;
         assert_eq!(&solution.to_string(), expected);

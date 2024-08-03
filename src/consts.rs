@@ -1,10 +1,10 @@
-pub(crate) type BitWidth = usize;
-pub(crate) const NUM_BITS: BitWidth = BitWidth::BITS as BitWidth;
-pub(crate) const SIZE: usize = 81;
-pub(crate) const WIDTH: usize = 9;
-pub(crate) const MASK: BitWidth = 0b11_1111_1110;
+pub type BitWidth = usize;
+pub const NUM_BITS: BitWidth = BitWidth::BITS as BitWidth;
+pub const SIZE: usize = 81;
+pub const WIDTH: usize = 9;
+pub const MASK: BitWidth = 0b11_1111_1110;
 
-pub(crate) const NEIGHBORS: [[usize; 20]; SIZE] = [
+pub const NEIGHBORS: [[usize; 20]; SIZE] = [
     [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19, 20, 27, 36, 45, 54, 63, 72,
     ],
@@ -250,7 +250,7 @@ pub(crate) const NEIGHBORS: [[usize; 20]; SIZE] = [
     ],
 ];
 
-pub(crate) const SAME_ROW: [[usize; 8]; SIZE] = [
+pub const SAME_ROW: [[usize; 8]; SIZE] = [
     [1, 2, 3, 4, 5, 6, 7, 8],
     [0, 2, 3, 4, 5, 6, 7, 8],
     [0, 1, 3, 4, 5, 6, 7, 8],
@@ -334,7 +334,7 @@ pub(crate) const SAME_ROW: [[usize; 8]; SIZE] = [
     [72, 73, 74, 75, 76, 77, 78, 79],
 ];
 
-pub(crate) const SAME_COL: [[usize; 8]; SIZE] = [
+pub const SAME_COL: [[usize; 8]; SIZE] = [
     [9, 18, 27, 36, 45, 54, 63, 72],
     [10, 19, 28, 37, 46, 55, 64, 73],
     [11, 20, 29, 38, 47, 56, 65, 74],
@@ -419,7 +419,7 @@ pub(crate) const SAME_COL: [[usize; 8]; SIZE] = [
 ];
 
 #[allow(unused)]
-pub(crate) const SAME_CELL: [[usize; 8]; SIZE] = [
+pub const SAME_CELL: [[usize; 8]; SIZE] = [
     [1, 2, 9, 10, 11, 18, 19, 20],
     [0, 2, 9, 10, 11, 18, 19, 20],
     [0, 1, 9, 10, 11, 18, 19, 20],
@@ -503,7 +503,7 @@ pub(crate) const SAME_CELL: [[usize; 8]; SIZE] = [
     [60, 61, 62, 69, 70, 71, 78, 79],
 ];
 
-pub(crate) const CELLS: [[usize; 9]; 9] = [
+pub const CELLS: [[usize; 9]; 9] = [
     [0, 1, 2, 9, 10, 11, 18, 19, 20],
     [3, 4, 5, 12, 13, 14, 21, 22, 23],
     [6, 7, 8, 15, 16, 17, 24, 25, 26],
@@ -515,7 +515,7 @@ pub(crate) const CELLS: [[usize; 9]; 9] = [
     [60, 61, 62, 69, 70, 71, 78, 79, 80],
 ];
 
-pub(crate) const ROWS: [[usize; 9]; 9] = [
+pub const ROWS: [[usize; 9]; 9] = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8],
     [9, 10, 11, 12, 13, 14, 15, 16, 17],
     [18, 19, 20, 21, 22, 23, 24, 25, 26],
@@ -527,7 +527,7 @@ pub(crate) const ROWS: [[usize; 9]; 9] = [
     [72, 73, 74, 75, 76, 77, 78, 79, 80],
 ];
 
-pub(crate) const COLS: [[usize; 9]; 9] = [
+pub const COLS: [[usize; 9]; 9] = [
     [0, 9, 18, 27, 36, 45, 54, 63, 72],
     [1, 10, 19, 28, 37, 46, 55, 64, 73],
     [2, 11, 20, 29, 38, 47, 56, 65, 74],
@@ -539,7 +539,7 @@ pub(crate) const COLS: [[usize; 9]; 9] = [
     [8, 17, 26, 35, 44, 53, 62, 71, 80],
 ];
 
-pub(crate) const CELL_LOOKUP: [usize; SIZE] = [
+pub const CELL_LOOKUP: [usize; SIZE] = [
     0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4,
     4, 5, 5, 5, 3, 3, 3, 4, 4, 4, 5, 5, 5, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 6,
     6, 6, 7, 7, 7, 8, 8, 8, 6, 6, 6, 7, 7, 7, 8, 8, 8,
