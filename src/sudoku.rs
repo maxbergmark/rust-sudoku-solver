@@ -63,7 +63,7 @@ impl Sudoku {
     }
 
     #[inline]
-    pub(crate) fn place(&mut self, idx: usize, digit: consts::BitWidth) {
+    pub fn place(&mut self, idx: usize, digit: consts::BitWidth) {
         self.digits[idx] = digit;
         self.bitboard[idx] = 0;
         self.num_digits += 1;
