@@ -13,6 +13,7 @@ pub enum Error {
         num_recursions: i32,
         guesses: i32,
     },
+    MultipleSolutions,
     #[from]
     Io(std::io::Error),
     #[from]
@@ -36,6 +37,7 @@ impl std::fmt::Display for Error {
                 f,
                 "NoSolution: num_recursions: {num_recursions}, guesses: {guesses}"
             ),
+            Self::MultipleSolutions => write!(f, "MultipleSolutions"),
             Self::Io(e) => write!(f, "Io: {e}"),
             Self::ParseInt(e) => write!(f, "ParseInt: {e}"),
             Self::Format(e) => write!(f, "Format: {e}"),

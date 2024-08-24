@@ -21,6 +21,9 @@ md5 = "0.7.0"
 rayon = "1.7.0"
 rstest = "0.18.2"
 
+[features]
+all_solutions = []
+
 [lints.clippy]
 map_err_ignore = "warn"
 # missing_docs_in_private_items = "warn"
